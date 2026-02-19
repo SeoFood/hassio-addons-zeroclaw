@@ -1,5 +1,8 @@
 ---
 configuration:
+  runtime_mode:
+    name: Runtime mode
+    description: Use gateway for webhook/pair endpoints or daemon for channel listeners (Telegram, Discord, Slack, etc.).
   provider:
     name: Provider
     description: LLM provider name used by ZeroClaw (for example openrouter, openai, anthropic, ollama).
@@ -18,5 +21,8 @@ configuration:
   gateway_host:
     name: Gateway host
     description: Bind address for the ZeroClaw gateway.
+  channels_config_toml:
+    name: Channels config (TOML)
+    description: Optional raw TOML block appended to ~/.zeroclaw/config.toml (for example [channels_config.discord]).
 network:
-  3010/tcp: ZeroClaw UI and gateway API port
+  3010/tcp: ZeroClaw UI and add-on endpoint port

@@ -81,13 +81,24 @@
       overflow: auto;
     }
     code { color: #bfe3ff; }
+    a { color: #7ed0ff; }
+    .hint { margin-top: 10px; font-size: 14px; line-height: 1.45; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="card">
       <h1>ZeroClaw</h1>
-      <p>Einfaches Ingress-Frontend fuer <code>/health</code>, <code>/pair</code> und <code>/webhook</code>.</p>
+      <p>Ingress-Frontend fuer <code>/health</code>, <code>/pair</code> und <code>/webhook</code>.</p>
+      <p class="hint">
+        <strong>Hinweis zu runtime_mode:</strong> Die Formulare auf dieser Seite sind fuer <code>gateway</code> gedacht.
+        Bei <code>daemon</code> laufen Channel-Listener (z. B. Discord/Telegram), waehrend <code>/pair</code> und <code>/webhook</code>
+        hier nicht relevant sind.
+      </p>
+      <p class="hint">
+        Setup-Beispiele findest du in
+        <a href="https://github.com/SeoFood/hassio-addons-zeroclaw/blob/main/zeroclaw/DOCS.md" target="_blank" rel="noopener noreferrer">DOCS.md</a>.
+      </p>
     </div>
 
     <div class="card">

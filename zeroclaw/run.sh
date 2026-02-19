@@ -5,6 +5,8 @@ OPTIONS_FILE="/data/options.json"
 STATE_DIR="/data/zeroclaw"
 FRONTEND_PORT="3010"
 BACKEND_PORT="3011"
+MANAGED_BEGIN="# --- zeroclaw-addon:channels-config begin ---"
+MANAGED_END="# --- zeroclaw-addon:channels-config end ---"
 
 read_opt() {
     local key="$1"
@@ -22,12 +24,43 @@ read_opt() {
     echo "${default}"
 }
 
+strip_managed_block() {
+    local file="$1"
+    awk -v begin="${MANAGED_BEGIN}" -v end="${MANAGED_END}" '
+        $0 == begin { skip = 1; next }
+        $0 == end { skip = 0; next }
+        !skip { print }
+    ' "${file}" > "${file}.tmp"
+    mv "${file}.tmp" "${file}"
+}
+
+append_managed_block() {
+    local file="$1"
+    local block="$2"
+    {
+        printf "\n%s\n" "${MANAGED_BEGIN}"
+        printf "%s\n" "${block}"
+        printf "%s\n" "${MANAGED_END}"
+    } >> "${file}"
+}
+
+RUNTIME_MODE="$(read_opt '.runtime_mode' 'gateway')"
 API_KEY="$(read_opt '.api_key' '')"
 PROVIDER="$(read_opt '.provider' 'openrouter')"
 MODEL="$(read_opt '.model' '')"
 REQUIRE_PAIRING="$(read_opt '.require_pairing' 'false')"
 ALLOW_PUBLIC_BIND="$(read_opt '.allow_public_bind' 'true')"
 GATEWAY_HOST="$(read_opt '.gateway_host' '0.0.0.0')"
+CHANNELS_CONFIG_TOML="$(read_opt '.channels_config_toml' '')"
+
+RUNTIME_MODE="${RUNTIME_MODE,,}"
+case "${RUNTIME_MODE}" in
+    gateway|daemon) ;;
+    *)
+        echo "WARN: Ungueltiger Wert fuer runtime_mode (${RUNTIME_MODE}), nutze gateway." >&2
+        RUNTIME_MODE="gateway"
+        ;;
+esac
 
 if [[ -z "${API_KEY}" ]]; then
     echo "ERROR: Option 'api_key' fehlt oder ist leer." >&2
@@ -58,6 +91,8 @@ if [[ ! -f "${CONFIG_FILE}" ]]; then
     exit 1
 fi
 
+strip_managed_block "${CONFIG_FILE}"
+
 if grep -Eq '^[[:space:]]*require_pairing[[:space:]]*=' "${CONFIG_FILE}"; then
     sed -E -i "s/^[[:space:]]*require_pairing[[:space:]]*=.*/require_pairing = ${REQUIRE_PAIRING}/" "${CONFIG_FILE}"
 elif grep -Eq '^[[:space:]]*\[gateway\][[:space:]]*$' "${CONFIG_FILE}"; then
@@ -76,6 +111,19 @@ else
     } >> "${CONFIG_FILE}"
 fi
 
+if [[ "${CHANNELS_CONFIG_TOML}" == "null" ]]; then
+    CHANNELS_CONFIG_TOML=""
+fi
+
+if [[ -n "${CHANNELS_CONFIG_TOML}" ]]; then
+    append_managed_block "${CONFIG_FILE}" "${CHANNELS_CONFIG_TOML}"
+    if ! /usr/local/bin/zeroclaw channel list >/dev/null 2>&1; then
+        echo "ERROR: channels_config_toml konnte nicht validiert werden." >&2
+        echo "Pruefe den TOML-Block in den Add-on Optionen (Syntax oder Feldnamen)." >&2
+        exit 1
+    fi
+fi
+
 chmod 600 "${CONFIG_FILE}" || true
 export API_KEY
 export PROVIDER
@@ -88,27 +136,42 @@ if [[ -n "${MODEL}" && "${MODEL}" != "null" ]]; then
 fi
 
 echo "=========================================="
-echo "ZeroClaw Gateway"
+echo "ZeroClaw Add-on"
 echo "Provider: ${PROVIDER}"
+echo "Runtime mode: ${RUNTIME_MODE}"
 echo "Bind (backend): ${GATEWAY_HOST}:${BACKEND_PORT}"
 echo "Require pairing: ${REQUIRE_PAIRING}"
+if [[ -n "${CHANNELS_CONFIG_TOML}" ]]; then
+    echo "Channels config: aktiv"
+else
+    echo "Channels config: leer"
+fi
 echo "Ingress UI: http://0.0.0.0:${FRONTEND_PORT}/"
 echo "=========================================="
 
-/usr/local/bin/zeroclaw gateway &
-gateway_pid=$!
+primary_pid=""
+case "${RUNTIME_MODE}" in
+    gateway)
+        /usr/local/bin/zeroclaw gateway &
+        primary_pid="$!"
+        ;;
+    daemon)
+        /usr/local/bin/zeroclaw daemon &
+        primary_pid="$!"
+        ;;
+esac
 
 nginx -c /etc/zeroclaw/nginx.conf -g "daemon off;" &
 nginx_pid=$!
 
 cleanup() {
-    kill "${gateway_pid}" "${nginx_pid}" >/dev/null 2>&1 || true
+    kill "${primary_pid}" "${nginx_pid}" >/dev/null 2>&1 || true
 }
 
 trap cleanup EXIT INT TERM
 
 set +e
-wait -n "${gateway_pid}" "${nginx_pid}"
+wait -n "${primary_pid}" "${nginx_pid}"
 exit_code=$?
 set -e
 cleanup
