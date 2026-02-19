@@ -62,7 +62,7 @@ jobs:
             --build-arg BUILD_FROM="${{ matrix.build_from }}" \
             --build-arg BUILD_ARCH="${{ matrix.arch }}" \
             --build-arg BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            --build-arg BUILD_DESCRIPTION="Run the ZeroClaw gateway as a Home Assistant add-on" \
+            --build-arg BUILD_DESCRIPTION="Run the ZeroClaw daemon as a Home Assistant add-on" \
             --build-arg BUILD_NAME="ZeroClaw" \
             --build-arg BUILD_REF="${GITHUB_SHA}" \
             --build-arg BUILD_REPOSITORY="${GITHUB_REPOSITORY}" \

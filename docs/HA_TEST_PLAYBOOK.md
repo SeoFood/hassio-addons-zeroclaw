@@ -1,89 +1,89 @@
 # ZeroClaw Add-on Test Playbook (Home Assistant)
 
-## Ziel
+## Goal
 
-Sicherstellen, dass das Add-on `zeroclaw` auf `amd64` und `aarch64` korrekt installiert, startet und über Ingress erreichbar ist.
+Verify that the `zeroclaw` add-on installs and runs correctly on `amd64` and `aarch64`, using daemon mode only.
 
-## Voraussetzungen
+## Prerequisites
 
-- Home Assistant OS mit Supervisor
-- Zugriff auf den Add-on Store
-- Dieses Repository als Add-on-Quelle eingebunden
-- Gültiger LLM API-Key (z. B. OpenRouter, OpenAI, Anthropic)
+- Home Assistant OS with Supervisor
+- Access to the Add-on Store
+- This repository added as an add-on source
+- A valid LLM API key (for example OpenRouter, OpenAI, or Anthropic)
 
-## 1. Repository einbinden
+## 1. Add repository
 
-1. Add-on Store öffnen.
-2. Menü oben rechts -> Repositories.
-3. Repository URL eintragen: `https://github.com/SeoFood/hassio-addons-zeroclaw`.
-4. Speichern und Store neu laden.
+1. Open Add-on Store.
+2. Open the top-right menu and select Repositories.
+3. Add `https://github.com/SeoFood/hassio-addons-zeroclaw`.
+4. Save and reload the store.
 
-## 2. Installation
+## 2. Install add-on
 
-1. Add-on `ZeroClaw` auswählen.
-2. Installieren.
-3. Nicht direkt starten, erst Konfiguration setzen.
+1. Open add-on `ZeroClaw`.
+2. Install it.
+3. Do not start yet; set config first.
 
-## 3. Basis-Konfiguration
+## 3. Base configuration
 
-Setze folgende Optionen im Add-on:
+Use this configuration:
 
 ```yaml
 provider: openrouter
-api_key: "<DEIN_API_KEY>"
+api_key: "<YOUR_API_KEY>"
 model: ""
-require_pairing: false
-allow_public_bind: true
-gateway_host: 0.0.0.0
+persistent_data_dir: zeroclaw
 ```
 
-Hinweis: `api_key` ist Pflicht. Ohne Key beendet sich das Add-on absichtlich mit Fehler.
+Note: `api_key` is required. The add-on exits by design when it is missing.
 
-## 4. Start & Health
+## 4. Start and log checks
 
-1. Add-on starten.
-2. Logs prüfen. Erwartet:
-   - `ZeroClaw Gateway`
-   - `Provider: <dein_provider>`
-   - Kein sofortiger Exit
-3. Ingress öffnen (UI muss sichtbar sein).
-4. Watchdog prüfen (`/health`): Status darf nicht fehlschlagen.
+1. Start the add-on.
+2. Check logs. Expected:
+   - `ZeroClaw Add-on`
+   - `Runtime mode: daemon`
+   - `State dir: /share/zeroclaw` (if `persistent_data_dir: zeroclaw`)
+   - no immediate crash/exit
+3. Confirm `channels.toml` exists:
+   - `/share/zeroclaw/channels.toml`
 
-## 5. Funktionaler Test
+## 5. Discord functional test
 
-1. Ingress öffnen.
-2. In der UI eine einfache Anfrage schicken (z. B. `Hello`).
-3. Erwartung:
-   - HTTP-Antwort vom Gateway
-   - Keine Auth-/Provider-Fehler im Log
+1. Edit `/share/zeroclaw/channels.toml` with your Discord channel config.
+2. Restart the add-on.
+3. Send a test message to the bot.
+4. Expected:
+   - bot responds
+   - no provider/auth errors in logs
 
-## 6. Persistenz-Test
+## 6. Persistence test
 
-1. Add-on stoppen.
-2. Home Assistant neu starten.
-3. Add-on wieder starten.
-4. Erwartung:
-   - Start weiterhin erfolgreich
-   - Zustand unter `/data/zeroclaw` bleibt erhalten
+1. Create a cron job from the running ZeroClaw runtime.
+2. Stop the add-on.
+3. Restart Home Assistant.
+4. Start the add-on again.
+5. Expected:
+   - startup still succeeds
+   - state in `/share/zeroclaw` is preserved (memory DB, cron state, config, workspace)
 
-## 7. Negativtests
+## 7. Negative tests
 
-- `api_key` leer -> Add-on muss mit klarer Fehlermeldung stoppen.
-- Ungültiger `provider` -> Start möglich, aber Provider-Fehler bei Request sichtbar.
-- `allow_public_bind: false` + `gateway_host: 0.0.0.0` -> erwarteter Bind-Fehler von ZeroClaw.
+- `api_key` empty: add-on must fail with a clear error.
+- Invalid `provider`: add-on starts, but provider errors appear during requests.
+- Invalid TOML in `/share/zeroclaw/channels.toml`: add-on fails with channel config validation error.
 
-## 8. Architektur-Matrix
+## 8. Architecture matrix
 
-Führe mindestens je einmal aus auf:
+Run at least once on:
 
-- `amd64` (z. B. HA auf x86 Mini-PC/VM)
-- `aarch64` (z. B. Raspberry Pi 4/5 64-bit)
+- `amd64` (for example x86 mini PC or VM)
+- `aarch64` (for example Raspberry Pi 4/5 64-bit)
 
-## 9. Abnahme-Kriterien
+## 9. Acceptance criteria
 
-- Installation erfolgreich
-- Start erfolgreich
-- Ingress erreichbar
-- `/health` stabil
-- Anfrage wird verarbeitet
-- Persistenz funktioniert
+- Installation successful
+- Start successful
+- Discord channel flow works
+- Persistence works across restart/reboot
+- No regressions on `amd64` and `aarch64`

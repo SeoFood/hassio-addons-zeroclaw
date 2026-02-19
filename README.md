@@ -12,4 +12,4 @@ https://github.com/SeoFood/hassio-addons-zeroclaw
 
 ## Included Add-ons
 
-- `zeroclaw`: Run the ZeroClaw gateway behind Home Assistant Ingress.
+- `zeroclaw`: Run the ZeroClaw daemon as a Home Assistant add-on.

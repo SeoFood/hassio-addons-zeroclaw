@@ -66,7 +66,7 @@ MODEL="$(read_opt '.model' '')"
 PERSISTENT_DATA_DIR="$(read_opt '.persistent_data_dir' '')"
 
 if [[ -z "${API_KEY}" ]]; then
-    echo "ERROR: Option 'api_key' fehlt oder ist leer." >&2
+    echo "ERROR: Option 'api_key' is missing or empty." >&2
     exit 1
 fi
 
@@ -82,7 +82,7 @@ mkdir -p "${STATE_DIR}"
 if [[ "${STATE_DIR}" != "${DEFAULT_STATE_DIR}" ]]; then
     if dir_has_entries "${DEFAULT_STATE_DIR}" && ! dir_has_entries "${STATE_DIR}"; then
         cp -a "${DEFAULT_STATE_DIR}/." "${STATE_DIR}/"
-        echo "INFO: Persistente Daten von ${DEFAULT_STATE_DIR} nach ${STATE_DIR} migriert." >&2
+        echo "INFO: Migrated persistent data from ${DEFAULT_STATE_DIR} to ${STATE_DIR}." >&2
     fi
 fi
 
@@ -97,7 +97,7 @@ if [[ ! -f "${CONFIG_FILE}" ]]; then
 fi
 
 if [[ ! -f "${CONFIG_FILE}" ]]; then
-    echo "ERROR: Konnte ${CONFIG_FILE} nicht erzeugen." >&2
+    echo "ERROR: Could not create ${CONFIG_FILE}." >&2
     exit 1
 fi
 
@@ -119,20 +119,20 @@ if [[ ! -f "${CHANNELS_CONFIG_FILE}" ]]; then
 # listen_to_bots = false
 # mention_only = false
 EOF
-    echo "INFO: Beispiel-Datei erstellt: ${CHANNELS_CONFIG_FILE}" >&2
+    echo "INFO: Created starter file: ${CHANNELS_CONFIG_FILE}" >&2
 fi
 CHANNELS_CONFIG_BLOCK="$(cat "${CHANNELS_CONFIG_FILE}")"
 if [[ -n "${CHANNELS_CONFIG_BLOCK}" ]]; then
     CHANNELS_CONFIG_SOURCE="file:${CHANNELS_CONFIG_FILE}"
 else
-    echo "WARN: ${CHANNELS_CONFIG_FILE} ist leer. Keine Channel-Konfiguration wird geladen." >&2
+    echo "WARN: ${CHANNELS_CONFIG_FILE} is empty. No channel configuration will be loaded." >&2
 fi
 
 if [[ -n "${CHANNELS_CONFIG_BLOCK}" ]]; then
     append_managed_block "${CONFIG_FILE}" "${CHANNELS_CONFIG_BLOCK}"
     if ! /usr/local/bin/zeroclaw channel list >/dev/null 2>&1; then
-        echo "ERROR: Channel-Konfiguration konnte nicht validiert werden." >&2
-        echo "Pruefe ${CHANNELS_CONFIG_FILE} (Syntax oder Feldnamen)." >&2
+        echo "ERROR: Channel configuration validation failed." >&2
+        echo "Check ${CHANNELS_CONFIG_FILE} for syntax or field-name errors." >&2
         exit 1
     fi
 fi
@@ -151,9 +151,9 @@ echo "Provider: ${PROVIDER}"
 echo "Runtime mode: daemon"
 echo "State dir: ${STATE_DIR}"
 if [[ -n "${CHANNELS_CONFIG_BLOCK}" ]]; then
-    echo "Channels config: aktiv (${CHANNELS_CONFIG_SOURCE})"
+    echo "Channels config: active (${CHANNELS_CONFIG_SOURCE})"
 else
-    echo "Channels config: leer"
+    echo "Channels config: empty"
 fi
 echo "=========================================="
 exec /usr/local/bin/zeroclaw daemon
