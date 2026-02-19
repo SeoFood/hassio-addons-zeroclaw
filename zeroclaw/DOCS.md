@@ -11,6 +11,7 @@ Run ZeroClaw as a Home Assistant add-on and access it via Ingress.
 - `require_pairing`: requires `/pair` before webhook requests (default `false` for easier HA usage)
 - `allow_public_bind`: keep enabled when `gateway_host` is `0.0.0.0`
 - `gateway_host`: bind address (default `0.0.0.0`)
+- `persistent_data_dir`: optional folder for all persistent add-on data (memory, cron, workspace, config). Relative paths resolve under `/share`.
 - `channels_config_dir`: folder for channel config (relative paths resolve under `/share`); if set, the add-on reads `<dir>/channels.toml` and creates it on first start if missing.
 
 ## Runtime modes
@@ -24,6 +25,7 @@ Recommended: Set `runtime_mode` to `daemon` and use `channels_config_dir`.
 
 ```yaml
 runtime_mode: daemon
+persistent_data_dir: zeroclaw
 channels_config_dir: zeroclaw
 ```
 
@@ -43,7 +45,9 @@ Security note:
 
 ## Notes
 
-- Data is persisted in `/data`.
+- Default persistent data path is `/data/zeroclaw`.
+- If `persistent_data_dir` is set, persistent data is stored there instead (for example `/share/zeroclaw`).
+- On first start with `persistent_data_dir`, existing data from `/data/zeroclaw` is auto-migrated when the target folder is empty.
 - `/share` is mounted read/write for file-based channel config.
 - Ingress serves a small UI on port `3010`.
 - ZeroClaw runtime (`gateway` or `daemon`) runs behind Nginx.

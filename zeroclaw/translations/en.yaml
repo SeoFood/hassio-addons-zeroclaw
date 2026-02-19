@@ -21,8 +21,11 @@ configuration:
   gateway_host:
     name: Gateway host
     description: Bind address for the ZeroClaw gateway.
+  persistent_data_dir:
+    name: Persistent data directory
+    description: Optional folder for all persistent add-on data (memory, cron, workspace, config). Relative paths resolve under /share.
   channels_config_dir:
     name: Channels config directory
-    description: Optional folder path. Relative paths resolve under /share; channels.toml is read from this folder (auto-created on first start).
+    description: Optional folder path for channels.toml. Relative paths resolve under /share. If empty and persistent_data_dir is set, channels.toml is read from persistent_data_dir.
 network:
   3010/tcp: ZeroClaw UI and add-on endpoint port

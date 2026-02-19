@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-7
+
+- Added `persistent_data_dir` to store all persistent runtime data (memory, cron, workspace, config) in a custom folder.
+- Added first-start migration from `/data/zeroclaw` to `persistent_data_dir` when the target folder is empty.
+- `channels_config_dir` now defaults to `persistent_data_dir` when set, so one folder can be used for everything.
+
 ## 0.1.0-6
 
 - Switched to a single `channels_config_dir` option and removed legacy `channels_config_file` / `channels_config_toml` options.

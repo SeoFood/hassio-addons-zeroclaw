@@ -2,7 +2,8 @@
 set -euo pipefail
 
 OPTIONS_FILE="/data/options.json"
-STATE_DIR="/data/zeroclaw"
+DEFAULT_STATE_DIR="/data/zeroclaw"
+STATE_DIR="${DEFAULT_STATE_DIR}"
 FRONTEND_PORT="3010"
 BACKEND_PORT="3011"
 MANAGED_BEGIN="# --- zeroclaw-addon:channels-config begin ---"
@@ -44,6 +45,23 @@ append_managed_block() {
     } >> "${file}"
 }
 
+resolve_path() {
+    local value="$1"
+    if [[ "${value}" != /* ]]; then
+        echo "/share/${value}"
+        return
+    fi
+    echo "${value}"
+}
+
+dir_has_entries() {
+    local dir="$1"
+    if [[ ! -d "${dir}" ]]; then
+        return 1
+    fi
+    find "${dir}" -mindepth 1 -maxdepth 1 -print -quit | grep -q .
+}
+
 RUNTIME_MODE="$(read_opt '.runtime_mode' 'gateway')"
 API_KEY="$(read_opt '.api_key' '')"
 PROVIDER="$(read_opt '.provider' 'openrouter')"
@@ -51,6 +69,7 @@ MODEL="$(read_opt '.model' '')"
 REQUIRE_PAIRING="$(read_opt '.require_pairing' 'false')"
 ALLOW_PUBLIC_BIND="$(read_opt '.allow_public_bind' 'true')"
 GATEWAY_HOST="$(read_opt '.gateway_host' '0.0.0.0')"
+PERSISTENT_DATA_DIR="$(read_opt '.persistent_data_dir' '')"
 CHANNELS_CONFIG_DIR="$(read_opt '.channels_config_dir' '')"
 
 RUNTIME_MODE="${RUNTIME_MODE,,}"
@@ -65,6 +84,22 @@ esac
 if [[ -z "${API_KEY}" ]]; then
     echo "ERROR: Option 'api_key' fehlt oder ist leer." >&2
     exit 1
+fi
+
+if [[ "${PERSISTENT_DATA_DIR}" == "null" ]]; then
+    PERSISTENT_DATA_DIR=""
+fi
+if [[ -n "${PERSISTENT_DATA_DIR}" ]]; then
+    STATE_DIR="$(resolve_path "${PERSISTENT_DATA_DIR}")"
+    STATE_DIR="${STATE_DIR%/}"
+fi
+
+mkdir -p "${STATE_DIR}"
+if [[ "${STATE_DIR}" != "${DEFAULT_STATE_DIR}" ]]; then
+    if dir_has_entries "${DEFAULT_STATE_DIR}" && ! dir_has_entries "${STATE_DIR}"; then
+        cp -a "${DEFAULT_STATE_DIR}/." "${STATE_DIR}/"
+        echo "INFO: Persistente Daten von ${DEFAULT_STATE_DIR} nach ${STATE_DIR} migriert." >&2
+    fi
 fi
 
 mkdir -p "${STATE_DIR}/.zeroclaw" "${STATE_DIR}/workspace"
@@ -114,13 +149,14 @@ fi
 if [[ "${CHANNELS_CONFIG_DIR}" == "null" ]]; then
     CHANNELS_CONFIG_DIR=""
 fi
+if [[ -z "${CHANNELS_CONFIG_DIR}" && -n "${PERSISTENT_DATA_DIR}" ]]; then
+    CHANNELS_CONFIG_DIR="${STATE_DIR}"
+fi
 
 CHANNELS_CONFIG_BLOCK=""
 CHANNELS_CONFIG_SOURCE=""
 if [[ -n "${CHANNELS_CONFIG_DIR}" ]]; then
-    if [[ "${CHANNELS_CONFIG_DIR}" != /* ]]; then
-        CHANNELS_CONFIG_DIR="/share/${CHANNELS_CONFIG_DIR}"
-    fi
+    CHANNELS_CONFIG_DIR="$(resolve_path "${CHANNELS_CONFIG_DIR}")"
     CHANNELS_CONFIG_DIR="${CHANNELS_CONFIG_DIR%/}"
     mkdir -p "${CHANNELS_CONFIG_DIR}"
     CHANNELS_CONFIG_FILE="${CHANNELS_CONFIG_DIR}/channels.toml"
@@ -171,6 +207,7 @@ echo "=========================================="
 echo "ZeroClaw Add-on"
 echo "Provider: ${PROVIDER}"
 echo "Runtime mode: ${RUNTIME_MODE}"
+echo "State dir: ${STATE_DIR}"
 echo "Bind (backend): ${GATEWAY_HOST}:${BACKEND_PORT}"
 echo "Require pairing: ${REQUIRE_PAIRING}"
 if [[ -n "${CHANNELS_CONFIG_BLOCK}" ]]; then
