@@ -103,12 +103,12 @@ jobs:
           delete-branch: true
           title: "chore: bump zeroclaw to ${{ steps.compare.outputs.latest }}"
           body: |
-            Automatisches Update der gepinnten ZeroClaw-Version.
+            Automated update of the pinned ZeroClaw version.
 
-            - Alt: `${{ steps.compare.outputs.current }}`
-            - Neu: `${{ steps.compare.outputs.latest }}`
-            - Neue Add-on-Version: `${{ steps.bump.outputs.next_addon_version }}`
+            - Previous: `${{ steps.compare.outputs.current }}`
+            - New: `${{ steps.compare.outputs.latest }}`
+            - New add-on version: `${{ steps.bump.outputs.next_addon_version }}`
 
-            Änderungen:
+            Changes:
             - `zeroclaw/Dockerfile`: `ARG ZEROCLAW_VERSION`
             - `zeroclaw/config.yaml`: `version`
