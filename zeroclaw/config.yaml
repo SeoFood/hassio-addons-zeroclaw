@@ -1,6 +1,6 @@
 ---
 name: ZeroClaw
-version: 0.1.0-10
+version: 0.1.0-11
 slug: zeroclaw
 description: Run ZeroClaw daemon as a Home Assistant add-on
 url: https://github.com/SeoFood/hassio-addons-zeroclaw/tree/main/zeroclaw
@@ -15,9 +15,11 @@ map:
 options:
   provider: openrouter
   api_key: null
+  autonomy_mode: default
   persistent_data_dir: ""
 schema:
   provider: str
   api_key: password
   model: "str?"
+  autonomy_mode: str
   persistent_data_dir: str

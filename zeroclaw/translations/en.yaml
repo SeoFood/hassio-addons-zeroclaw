@@ -9,6 +9,9 @@ configuration:
   model:
     name: Model
     description: Optional model override.
+  autonomy_mode:
+    name: Autonomy mode
+    description: Set to `default` for supervised/workspace-only mode, or `full_access` to allow unrestricted execution outside the workspace.
   persistent_data_dir:
     name: Persistent data directory
     description: Optional folder for all persistent add-on data (memory, cron, workspace, config, channels.toml). Relative paths resolve under /share.

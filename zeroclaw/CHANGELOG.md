@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-11
+
+- Added `autonomy_mode` add-on option with `default` and `full_access` modes.
+- `run.sh` now manages ZeroClaw `[autonomy]` policy keys from add-on options on startup.
+- Added documentation for Full Access mode and its security impact.
+
 ## 0.1.0-10
 
 - Added `gh` (GitHub CLI) to the runtime image for persistent in-container availability.
