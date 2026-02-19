@@ -13,6 +13,7 @@ boot: auto
 ingress: true
 ingress_port: 3000
 ingress_stream: true
+ingress_entry: /health
 panel_icon: mdi:robot
 ports:
   3000/tcp: null

@@ -15,3 +15,4 @@ Run the ZeroClaw gateway as a Home Assistant add-on and access it via Ingress.
 - Data is persisted in `/data`.
 - The add-on starts `zeroclaw gateway` on port `3000`.
 - The host port mapping is disabled by default because Ingress is enabled.
+- Important: ZeroClaw has no UI on `/`, therefore the add-on Ingress entry is set to `/health`.
