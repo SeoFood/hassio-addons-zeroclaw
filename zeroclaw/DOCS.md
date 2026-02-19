@@ -11,8 +11,8 @@ Run ZeroClaw as a Home Assistant add-on and access it via Ingress.
 - `require_pairing`: requires `/pair` before webhook requests (default `false` for easier HA usage)
 - `allow_public_bind`: keep enabled when `gateway_host` is `0.0.0.0`
 - `gateway_host`: bind address (default `0.0.0.0`)
-- `channels_config_file` (optional): TOML file path for channels config (relative paths resolve under `/share`)
-- `channels_config_toml` (optional): raw TOML block appended to `~/.zeroclaw/config.toml`
+- `channels_config_file`: TOML file path for channels config (relative paths resolve under `/share`); leave empty to disable.
+- `channels_config_toml`: raw TOML block appended to `~/.zeroclaw/config.toml`; leave empty to disable.
 
 ## Runtime modes
 

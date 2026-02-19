@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-5
+
+- Fixed option-save issues by switching `channels_config_file` and `channels_config_toml` defaults from `null` to empty strings.
+- Updated add-on schema so both fields are plain `str`, avoiding `None`/missing-option validation errors.
+
 ## 0.1.0-4
 
 - Added `channels_config_file` option for file-based TOML config with editor-friendly workflow.
