@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.0-4
+
+- Added `channels_config_file` option for file-based TOML config with editor-friendly workflow.
+- Added `/share` mount to support external channel config files.
+- Updated startup logic: if both `channels_config_file` and `channels_config_toml` are set, file-based config wins.
+- Updated docs with file-based Discord example.
+
 ## 0.1.0-3
 
 - Added `runtime_mode` option (`gateway` or `daemon`) to run webhook or channel-listener workflows.

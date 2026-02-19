@@ -51,6 +51,7 @@ MODEL="$(read_opt '.model' '')"
 REQUIRE_PAIRING="$(read_opt '.require_pairing' 'false')"
 ALLOW_PUBLIC_BIND="$(read_opt '.allow_public_bind' 'true')"
 GATEWAY_HOST="$(read_opt '.gateway_host' '0.0.0.0')"
+CHANNELS_CONFIG_FILE="$(read_opt '.channels_config_file' '')"
 CHANNELS_CONFIG_TOML="$(read_opt '.channels_config_toml' '')"
 
 RUNTIME_MODE="${RUNTIME_MODE,,}"
@@ -111,15 +112,44 @@ else
     } >> "${CONFIG_FILE}"
 fi
 
+if [[ "${CHANNELS_CONFIG_FILE}" == "null" ]]; then
+    CHANNELS_CONFIG_FILE=""
+fi
 if [[ "${CHANNELS_CONFIG_TOML}" == "null" ]]; then
     CHANNELS_CONFIG_TOML=""
 fi
 
-if [[ -n "${CHANNELS_CONFIG_TOML}" ]]; then
-    append_managed_block "${CONFIG_FILE}" "${CHANNELS_CONFIG_TOML}"
+CHANNELS_CONFIG_BLOCK=""
+CHANNELS_CONFIG_SOURCE=""
+if [[ -n "${CHANNELS_CONFIG_FILE}" ]]; then
+    if [[ "${CHANNELS_CONFIG_FILE}" != /* ]]; then
+        CHANNELS_CONFIG_FILE="/share/${CHANNELS_CONFIG_FILE}"
+    fi
+    if [[ ! -f "${CHANNELS_CONFIG_FILE}" ]]; then
+        echo "ERROR: channels_config_file nicht gefunden: ${CHANNELS_CONFIG_FILE}" >&2
+        exit 1
+    fi
+    CHANNELS_CONFIG_BLOCK="$(cat "${CHANNELS_CONFIG_FILE}")"
+    if [[ -n "${CHANNELS_CONFIG_BLOCK}" ]]; then
+        if [[ -n "${CHANNELS_CONFIG_TOML}" ]]; then
+            echo "WARN: channels_config_file ist gesetzt, channels_config_toml wird ignoriert." >&2
+        fi
+        CHANNELS_CONFIG_SOURCE="file:${CHANNELS_CONFIG_FILE}"
+    elif [[ -n "${CHANNELS_CONFIG_TOML}" ]]; then
+        echo "WARN: channels_config_file ist leer, fallback auf channels_config_toml." >&2
+        CHANNELS_CONFIG_BLOCK="${CHANNELS_CONFIG_TOML}"
+        CHANNELS_CONFIG_SOURCE="inline-fallback"
+    fi
+elif [[ -n "${CHANNELS_CONFIG_TOML}" ]]; then
+    CHANNELS_CONFIG_BLOCK="${CHANNELS_CONFIG_TOML}"
+    CHANNELS_CONFIG_SOURCE="inline"
+fi
+
+if [[ -n "${CHANNELS_CONFIG_BLOCK}" ]]; then
+    append_managed_block "${CONFIG_FILE}" "${CHANNELS_CONFIG_BLOCK}"
     if ! /usr/local/bin/zeroclaw channel list >/dev/null 2>&1; then
-        echo "ERROR: channels_config_toml konnte nicht validiert werden." >&2
-        echo "Pruefe den TOML-Block in den Add-on Optionen (Syntax oder Feldnamen)." >&2
+        echo "ERROR: Channel-Konfiguration konnte nicht validiert werden." >&2
+        echo "Pruefe channels_config_file/channels_config_toml (Syntax oder Feldnamen)." >&2
         exit 1
     fi
 fi
@@ -141,8 +171,8 @@ echo "Provider: ${PROVIDER}"
 echo "Runtime mode: ${RUNTIME_MODE}"
 echo "Bind (backend): ${GATEWAY_HOST}:${BACKEND_PORT}"
 echo "Require pairing: ${REQUIRE_PAIRING}"
-if [[ -n "${CHANNELS_CONFIG_TOML}" ]]; then
-    echo "Channels config: aktiv"
+if [[ -n "${CHANNELS_CONFIG_BLOCK}" ]]; then
+    echo "Channels config: aktiv (${CHANNELS_CONFIG_SOURCE})"
 else
     echo "Channels config: leer"
 fi

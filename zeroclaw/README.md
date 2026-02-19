@@ -8,6 +8,7 @@ This add-on packages [ZeroClaw](https://github.com/zeroclaw-labs/zeroclaw) and r
 - Ingress support
 - Runtime mode switch: `gateway` or `daemon`
 - Built-in UI form over Ingress (`3010` frontend)
+- File-based channel config via `channels_config_file` (TOML in `/share`)
 - Generic `channels_config_toml` option for all ZeroClaw channels
 - Persistent data in `/data`
 
