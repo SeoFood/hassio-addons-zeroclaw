@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.0-9
+
+- Switched the add-on to daemon-only mode and removed gateway/runtime mode options.
+- Removed Ingress/Web UI/Nginx integration and related port/watchdog settings.
+- Simplified startup script to run `zeroclaw daemon` directly.
+- Installed `git` in the runtime image to avoid missing `git clone` warnings for skills.
+
 ## 0.1.0-8
 
 - Removed `channels_config_dir`; channel config now always uses `channels.toml` in the active persistent data directory.

@@ -4,8 +4,6 @@ set -euo pipefail
 OPTIONS_FILE="/data/options.json"
 DEFAULT_STATE_DIR="/data/zeroclaw"
 STATE_DIR="${DEFAULT_STATE_DIR}"
-FRONTEND_PORT="3010"
-BACKEND_PORT="3011"
 MANAGED_BEGIN="# --- zeroclaw-addon:channels-config begin ---"
 MANAGED_END="# --- zeroclaw-addon:channels-config end ---"
 
@@ -62,23 +60,10 @@ dir_has_entries() {
     find "${dir}" -mindepth 1 -maxdepth 1 -print -quit | grep -q .
 }
 
-RUNTIME_MODE="$(read_opt '.runtime_mode' 'gateway')"
 API_KEY="$(read_opt '.api_key' '')"
 PROVIDER="$(read_opt '.provider' 'openrouter')"
 MODEL="$(read_opt '.model' '')"
-REQUIRE_PAIRING="$(read_opt '.require_pairing' 'false')"
-ALLOW_PUBLIC_BIND="$(read_opt '.allow_public_bind' 'true')"
-GATEWAY_HOST="$(read_opt '.gateway_host' '0.0.0.0')"
 PERSISTENT_DATA_DIR="$(read_opt '.persistent_data_dir' '')"
-
-RUNTIME_MODE="${RUNTIME_MODE,,}"
-case "${RUNTIME_MODE}" in
-    gateway|daemon) ;;
-    *)
-        echo "WARN: Ungueltiger Wert fuer runtime_mode (${RUNTIME_MODE}), nutze gateway." >&2
-        RUNTIME_MODE="gateway"
-        ;;
-esac
 
 if [[ -z "${API_KEY}" ]]; then
     echo "ERROR: Option 'api_key' fehlt oder ist leer." >&2
@@ -103,15 +88,6 @@ fi
 
 mkdir -p "${STATE_DIR}/.zeroclaw" "${STATE_DIR}/workspace"
 
-case "${REQUIRE_PAIRING,,}" in
-    1|true|yes|on) REQUIRE_PAIRING="true" ;;
-    0|false|no|off|"") REQUIRE_PAIRING="false" ;;
-    *)
-        echo "WARN: Ungueltiger Wert fuer require_pairing (${REQUIRE_PAIRING}), nutze false." >&2
-        REQUIRE_PAIRING="false"
-        ;;
-esac
-
 export HOME="${STATE_DIR}"
 export ZEROCLAW_WORKSPACE="${STATE_DIR}/workspace"
 
@@ -126,24 +102,6 @@ if [[ ! -f "${CONFIG_FILE}" ]]; then
 fi
 
 strip_managed_block "${CONFIG_FILE}"
-
-if grep -Eq '^[[:space:]]*require_pairing[[:space:]]*=' "${CONFIG_FILE}"; then
-    sed -E -i "s/^[[:space:]]*require_pairing[[:space:]]*=.*/require_pairing = ${REQUIRE_PAIRING}/" "${CONFIG_FILE}"
-elif grep -Eq '^[[:space:]]*\[gateway\][[:space:]]*$' "${CONFIG_FILE}"; then
-    awk -v req="${REQUIRE_PAIRING}" '
-        { print }
-        /^[[:space:]]*\[gateway\][[:space:]]*$/ && !inserted {
-            print "require_pairing = " req
-            inserted = 1
-        }
-    ' "${CONFIG_FILE}" > "${CONFIG_FILE}.tmp"
-    mv "${CONFIG_FILE}.tmp" "${CONFIG_FILE}"
-else
-    {
-        printf "\n[gateway]\n"
-        printf "require_pairing = %s\n" "${REQUIRE_PAIRING}"
-    } >> "${CONFIG_FILE}"
-fi
 
 CHANNELS_CONFIG_BLOCK=""
 CHANNELS_CONFIG_SOURCE=""
@@ -182,9 +140,6 @@ fi
 chmod 600 "${CONFIG_FILE}" || true
 export API_KEY
 export PROVIDER
-export ZEROCLAW_ALLOW_PUBLIC_BIND="${ALLOW_PUBLIC_BIND}"
-export ZEROCLAW_GATEWAY_HOST="${GATEWAY_HOST}"
-export ZEROCLAW_GATEWAY_PORT="${BACKEND_PORT}"
 
 if [[ -n "${MODEL}" && "${MODEL}" != "null" ]]; then
     export ZEROCLAW_MODEL="${MODEL}"
@@ -193,42 +148,12 @@ fi
 echo "=========================================="
 echo "ZeroClaw Add-on"
 echo "Provider: ${PROVIDER}"
-echo "Runtime mode: ${RUNTIME_MODE}"
+echo "Runtime mode: daemon"
 echo "State dir: ${STATE_DIR}"
-echo "Bind (backend): ${GATEWAY_HOST}:${BACKEND_PORT}"
-echo "Require pairing: ${REQUIRE_PAIRING}"
 if [[ -n "${CHANNELS_CONFIG_BLOCK}" ]]; then
     echo "Channels config: aktiv (${CHANNELS_CONFIG_SOURCE})"
 else
     echo "Channels config: leer"
 fi
-echo "Ingress UI: http://0.0.0.0:${FRONTEND_PORT}/"
 echo "=========================================="
-
-primary_pid=""
-case "${RUNTIME_MODE}" in
-    gateway)
-        /usr/local/bin/zeroclaw gateway &
-        primary_pid="$!"
-        ;;
-    daemon)
-        /usr/local/bin/zeroclaw daemon &
-        primary_pid="$!"
-        ;;
-esac
-
-nginx -c /etc/zeroclaw/nginx.conf -g "daemon off;" &
-nginx_pid=$!
-
-cleanup() {
-    kill "${primary_pid}" "${nginx_pid}" >/dev/null 2>&1 || true
-}
-
-trap cleanup EXIT INT TERM
-
-set +e
-wait -n "${primary_pid}" "${nginx_pid}"
-exit_code=$?
-set -e
-cleanup
-exit "${exit_code}"
+exec /usr/local/bin/zeroclaw daemon

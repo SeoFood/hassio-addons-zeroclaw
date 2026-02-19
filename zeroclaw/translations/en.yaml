@@ -1,8 +1,5 @@
 ---
 configuration:
-  runtime_mode:
-    name: Runtime mode
-    description: Use gateway for webhook/pair endpoints or daemon for channel listeners (Telegram, Discord, Slack, etc.).
   provider:
     name: Provider
     description: LLM provider name used by ZeroClaw (for example openrouter, openai, anthropic, ollama).
@@ -12,17 +9,6 @@ configuration:
   model:
     name: Model
     description: Optional model override.
-  require_pairing:
-    name: Require pairing
-    description: If disabled, the gateway accepts webhook requests without an initial /pair flow.
-  allow_public_bind:
-    name: Allow public bind
-    description: Must be enabled when binding the gateway to 0.0.0.0.
-  gateway_host:
-    name: Gateway host
-    description: Bind address for the ZeroClaw gateway.
   persistent_data_dir:
     name: Persistent data directory
     description: Optional folder for all persistent add-on data (memory, cron, workspace, config, channels.toml). Relative paths resolve under /share.
-network:
-  3010/tcp: ZeroClaw UI and add-on endpoint port
