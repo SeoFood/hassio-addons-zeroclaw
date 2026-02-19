@@ -32,6 +32,7 @@ Setze folgende Optionen im Add-on:
 provider: openrouter
 api_key: "<DEIN_API_KEY>"
 model: ""
+require_pairing: false
 allow_public_bind: true
 gateway_host: 0.0.0.0
 ```

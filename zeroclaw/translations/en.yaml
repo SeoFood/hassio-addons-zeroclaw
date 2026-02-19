@@ -9,6 +9,9 @@ configuration:
   model:
     name: Model
     description: Optional model override.
+  require_pairing:
+    name: Require pairing
+    description: If disabled, the gateway accepts webhook requests without an initial /pair flow.
   allow_public_bind:
     name: Allow public bind
     description: Must be enabled when binding the gateway to 0.0.0.0.
