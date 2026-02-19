@@ -70,7 +70,6 @@ REQUIRE_PAIRING="$(read_opt '.require_pairing' 'false')"
 ALLOW_PUBLIC_BIND="$(read_opt '.allow_public_bind' 'true')"
 GATEWAY_HOST="$(read_opt '.gateway_host' '0.0.0.0')"
 PERSISTENT_DATA_DIR="$(read_opt '.persistent_data_dir' '')"
-CHANNELS_CONFIG_DIR="$(read_opt '.channels_config_dir' '')"
 
 RUNTIME_MODE="${RUNTIME_MODE,,}"
 case "${RUNTIME_MODE}" in
@@ -146,22 +145,11 @@ else
     } >> "${CONFIG_FILE}"
 fi
 
-if [[ "${CHANNELS_CONFIG_DIR}" == "null" ]]; then
-    CHANNELS_CONFIG_DIR=""
-fi
-if [[ -z "${CHANNELS_CONFIG_DIR}" && -n "${PERSISTENT_DATA_DIR}" ]]; then
-    CHANNELS_CONFIG_DIR="${STATE_DIR}"
-fi
-
 CHANNELS_CONFIG_BLOCK=""
 CHANNELS_CONFIG_SOURCE=""
-if [[ -n "${CHANNELS_CONFIG_DIR}" ]]; then
-    CHANNELS_CONFIG_DIR="$(resolve_path "${CHANNELS_CONFIG_DIR}")"
-    CHANNELS_CONFIG_DIR="${CHANNELS_CONFIG_DIR%/}"
-    mkdir -p "${CHANNELS_CONFIG_DIR}"
-    CHANNELS_CONFIG_FILE="${CHANNELS_CONFIG_DIR}/channels.toml"
-    if [[ ! -f "${CHANNELS_CONFIG_FILE}" ]]; then
-        cat > "${CHANNELS_CONFIG_FILE}" <<'EOF'
+CHANNELS_CONFIG_FILE="${STATE_DIR}/channels.toml"
+if [[ ! -f "${CHANNELS_CONFIG_FILE}" ]]; then
+    cat > "${CHANNELS_CONFIG_FILE}" <<'EOF'
 # ZeroClaw channels config
 # Fill this file with your channel definitions.
 #
@@ -173,14 +161,13 @@ if [[ -n "${CHANNELS_CONFIG_DIR}" ]]; then
 # listen_to_bots = false
 # mention_only = false
 EOF
-        echo "INFO: Beispiel-Datei erstellt: ${CHANNELS_CONFIG_FILE}" >&2
-    fi
-    CHANNELS_CONFIG_BLOCK="$(cat "${CHANNELS_CONFIG_FILE}")"
-    if [[ -n "${CHANNELS_CONFIG_BLOCK}" ]]; then
-        CHANNELS_CONFIG_SOURCE="dir:${CHANNELS_CONFIG_DIR}"
-    else
-        echo "WARN: ${CHANNELS_CONFIG_FILE} ist leer. Keine Channel-Konfiguration wird geladen." >&2
-    fi
+    echo "INFO: Beispiel-Datei erstellt: ${CHANNELS_CONFIG_FILE}" >&2
+fi
+CHANNELS_CONFIG_BLOCK="$(cat "${CHANNELS_CONFIG_FILE}")"
+if [[ -n "${CHANNELS_CONFIG_BLOCK}" ]]; then
+    CHANNELS_CONFIG_SOURCE="file:${CHANNELS_CONFIG_FILE}"
+else
+    echo "WARN: ${CHANNELS_CONFIG_FILE} ist leer. Keine Channel-Konfiguration wird geladen." >&2
 fi
 
 if [[ -n "${CHANNELS_CONFIG_BLOCK}" ]]; then

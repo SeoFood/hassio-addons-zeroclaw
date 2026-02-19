@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-8
+
+- Removed `channels_config_dir`; channel config now always uses `channels.toml` in the active persistent data directory.
+- `channels.toml` starter file is auto-created on first start in the persistent data directory.
+- Updated docs and option labels for the single-directory workflow.
+
 ## 0.1.0-7
 
 - Added `persistent_data_dir` to store all persistent runtime data (memory, cron, workspace, config) in a custom folder.

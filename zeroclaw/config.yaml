@@ -1,6 +1,6 @@
 ---
 name: ZeroClaw
-version: 0.1.0-7
+version: 0.1.0-8
 slug: zeroclaw
 description: Run ZeroClaw gateway or daemon as a Home Assistant add-on
 url: https://github.com/SeoFood/hassio-addons-zeroclaw/tree/main/zeroclaw
@@ -30,7 +30,6 @@ options:
   allow_public_bind: true
   gateway_host: 0.0.0.0
   persistent_data_dir: ""
-  channels_config_dir: ""
 schema:
   runtime_mode: str
   provider: str
@@ -40,4 +39,3 @@ schema:
   allow_public_bind: bool
   gateway_host: str
   persistent_data_dir: str
-  channels_config_dir: str
