@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  issues: write
+  contents: write
+  pull-requests: write
 
 concurrency:
   group: check-zeroclaw-upstream
@@ -48,8 +48,11 @@ jobs:
             update_available="true"
           fi
 
+          latest_sanitized="$(echo "${latest}" | tr -c '[:alnum:]._-' '-')"
+
           echo "current=${current}" >> "${GITHUB_OUTPUT}"
           echo "latest=${latest}" >> "${GITHUB_OUTPUT}"
+          echo "latest_sanitized=${latest_sanitized}" >> "${GITHUB_OUTPUT}"
           echo "update_available=${update_available}" >> "${GITHUB_OUTPUT}"
 
           {
@@ -60,48 +63,52 @@ jobs:
             echo "- Update available: \`${update_available}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
-      - name: Create issue when update is available
+      - name: Update pinned versions
+        id: bump
         if: steps.compare.outputs.update_available == 'true'
-        uses: actions/github-script@v7
+        shell: bash
         env:
-          CURRENT: ${{ steps.compare.outputs.current }}
           LATEST: ${{ steps.compare.outputs.latest }}
+        run: |
+          set -euo pipefail
+
+          current_addon_version="$(awk -F': ' '/^version:/{gsub(/"/,"",$2); print $2; exit}' zeroclaw/config.yaml)"
+          if [[ -z "${current_addon_version}" ]]; then
+            echo "Could not read add-on version from zeroclaw/config.yaml" >&2
+            exit 1
+          fi
+
+          if [[ "${current_addon_version}" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)$ ]]; then
+            base="${BASH_REMATCH[1]}"
+            n="${BASH_REMATCH[2]}"
+            next_addon_version="${base}-$((n + 1))"
+          elif [[ "${current_addon_version}" =~ ^([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            next_addon_version="${current_addon_version}-1"
+          else
+            echo "Unsupported add-on version format: ${current_addon_version}" >&2
+            exit 1
+          fi
+
+          sed -E -i "s/^ARG ZEROCLAW_VERSION=.*/ARG ZEROCLAW_VERSION=${LATEST}/" zeroclaw/Dockerfile
+          sed -E -i "s/^version: .*/version: ${next_addon_version}/" zeroclaw/config.yaml
+
+          echo "next_addon_version=${next_addon_version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Create pull request when update is available
+        if: steps.compare.outputs.update_available == 'true'
+        uses: peter-evans/create-pull-request@v6
         with:
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const current = process.env.CURRENT;
-            const latest = process.env.LATEST;
-            const title = `ZeroClaw update available: ${current} -> ${latest}`;
+          commit-message: "chore: bump zeroclaw to ${{ steps.compare.outputs.latest }}"
+          branch: "chore/bump-zeroclaw-${{ steps.compare.outputs.latest_sanitized }}"
+          delete-branch: true
+          title: "chore: bump zeroclaw to ${{ steps.compare.outputs.latest }}"
+          body: |
+            Automatisches Update der gepinnten ZeroClaw-Version.
 
-            const { data: openIssues } = await github.rest.issues.listForRepo({
-              owner,
-              repo,
-              state: "open",
-              per_page: 100,
-            });
+            - Alt: `${{ steps.compare.outputs.current }}`
+            - Neu: `${{ steps.compare.outputs.latest }}`
+            - Neue Add-on-Version: `${{ steps.bump.outputs.next_addon_version }}`
 
-            const existing = openIssues.find((issue) => issue.title === title);
-            if (existing) {
-              core.info(`Issue already exists: #${existing.number}`);
-              return;
-            }
-
-            const body = [
-              "Ein neuer ZeroClaw-Release ist verfuegbar.",
-              "",
-              `- Aktuell gepinnt: \`${current}\``,
-              `- Neuester Upstream-Tag: \`${latest}\``,
-              "",
-              "Nächste Schritte:",
-              "1. `zeroclaw/Dockerfile`: `ARG ZEROCLAW_VERSION` auf den neuen Tag setzen.",
-              "2. `zeroclaw/config.yaml`: Add-on-Version erhoehen.",
-              "3. Build + Test in Home Assistant.",
-            ].join("\n");
-
-            await github.rest.issues.create({
-              owner,
-              repo,
-              title,
-              body,
-            });
+            Änderungen:
+            - `zeroclaw/Dockerfile`: `ARG ZEROCLAW_VERSION`
+            - `zeroclaw/config.yaml`: `version`
