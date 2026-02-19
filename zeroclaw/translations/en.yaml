@@ -19,4 +19,4 @@ configuration:
     name: Gateway host
     description: Bind address for the ZeroClaw gateway.
 network:
-  3000/tcp: ZeroClaw gateway API port
+  3010/tcp: ZeroClaw UI and gateway API port

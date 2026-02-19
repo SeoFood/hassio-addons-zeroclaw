@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ZeroClaw Ingress</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --surface: #121b2f;
+      --text: #e7eefc;
+      --muted: #a9b7d8;
+      --primary: #32b8ff;
+      --ok: #2ecc71;
+      --warn: #f39c12;
+      --err: #ff5f5f;
+      --border: #26314d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      background: radial-gradient(circle at top right, #12335d, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+    .card {
+      background: rgba(18, 27, 47, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    h1 { margin: 0 0 8px; font-size: 24px; }
+    p { margin: 0; color: var(--muted); }
+    label { display: block; font-size: 13px; margin: 12px 0 6px; color: var(--muted); }
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: #0e1730;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 10px;
+      font: inherit;
+    }
+    textarea { min-height: 130px; resize: vertical; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      background: var(--primary);
+      color: #001221;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .status { font-size: 13px; margin-top: 10px; }
+    .ok { color: var(--ok); }
+    .warn { color: var(--warn); }
+    .err { color: var(--err); }
+    pre {
+      margin: 0;
+      background: #0a1226;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 45vh;
+      overflow: auto;
+    }
+    code { color: #bfe3ff; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>ZeroClaw</h1>
+      <p>Einfaches Ingress-Frontend fuer <code>/health</code>, <code>/pair</code> und <code>/webhook</code>.</p>
+    </div>
+
+    <div class="card">
+      <label for="pairCode">Pairing-Code (nur falls aktiviert)</label>
+      <input id="pairCode" placeholder="z. B. 123456" />
+      <label for="token">Bearer Token (wird nach erfolgreichem Pairing automatisch gesetzt)</label>
+      <input id="token" placeholder="Optional bei require_pairing=false" />
+      <div class="row">
+        <button id="pairBtn" class="secondary">Pairing senden</button>
+        <button id="healthBtn" class="secondary">Health laden</button>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+
+    <div class="card">
+      <label for="message">Nachricht an /webhook</label>
+      <textarea id="message" placeholder="Schreibe deine Anfrage hier..."></textarea>
+      <div class="row">
+        <button id="sendBtn">Senden</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>Antwort</label>
+      <pre id="output">Noch keine Antwort.</pre>
+    </div>
+  </div>
+
+  <script>
+    const pairCode = document.getElementById('pairCode');
+    const token = document.getElementById('token');
+    const status = document.getElementById('status');
+    const message = document.getElementById('message');
+    const output = document.getElementById('output');
+
+    function setStatus(text, kind) {
+      status.textContent = text;
+      status.className = 'status ' + (kind || '');
+    }
+
+    function setOutput(body) {
+      if (typeof body === 'string') {
+        output.textContent = body;
+        return;
+      }
+      output.textContent = JSON.stringify(body, null, 2);
+    }
+
+    async function parseResponse(res) {
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch {
+        return text || '(leer)';
+      }
+    }
+
+    document.getElementById('healthBtn').addEventListener('click', async () => {
+      setStatus('Lade /health ...');
+      try {
+        const res = await fetch('./health');
+        const body = await parseResponse(res);
+        setOutput(body);
+        setStatus(res.ok ? 'Health OK' : 'Health Fehler: HTTP ' + res.status, res.ok ? 'ok' : 'warn');
+      } catch (err) {
+        setStatus('Health Request fehlgeschlagen: ' + err.message, 'err');
+      }
+    });
+
+    document.getElementById('pairBtn').addEventListener('click', async () => {
+      const code = pairCode.value.trim();
+      if (!code) {
+        setStatus('Bitte Pairing-Code eingeben.', 'warn');
+        return;
+      }
+      setStatus('Sende /pair ...');
+      try {
+        const res = await fetch('./pair', {
+          method: 'POST',
+          headers: { 'X-Pairing-Code': code }
+        });
+        const body = await parseResponse(res);
+        setOutput(body);
+
+        if (res.ok && body && typeof body === 'object') {
+          const received = body.token || body.bearer || body.access_token || '';
+          if (received) token.value = received;
+        }
+
+        setStatus(res.ok ? 'Pairing erfolgreich.' : 'Pairing fehlgeschlagen: HTTP ' + res.status, res.ok ? 'ok' : 'warn');
+      } catch (err) {
+        setStatus('Pairing Request fehlgeschlagen: ' + err.message, 'err');
+      }
+    });
+
+    document.getElementById('sendBtn').addEventListener('click', async () => {
+      const prompt = message.value.trim();
+      if (!prompt) {
+        setStatus('Bitte erst eine Nachricht eingeben.', 'warn');
+        return;
+      }
+
+      const headers = { 'Content-Type': 'application/json' };
+      const bearer = token.value.trim();
+      if (bearer) headers.Authorization = 'Bearer ' + bearer;
+
+      setStatus('Sende /webhook ...');
+      try {
+        const res = await fetch('./webhook', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ message: prompt })
+        });
+        const body = await parseResponse(res);
+        setOutput(body);
+        setStatus(res.ok ? 'Webhook erfolgreich.' : 'Webhook Fehler: HTTP ' + res.status, res.ok ? 'ok' : 'warn');
+      } catch (err) {
+        setStatus('Webhook Request fehlgeschlagen: ' + err.message, 'err');
+      }
+    });
+  </script>
+</body>
+</html>

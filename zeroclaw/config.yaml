@@ -1,6 +1,6 @@
 ---
 name: ZeroClaw
-version: 0.1.0-1
+version: 0.1.0-2
 slug: zeroclaw
 description: Run the ZeroClaw gateway as a Home Assistant add-on
 url: https://github.com/SeoFood/hassio-addons-zeroclaw/tree/main/zeroclaw
@@ -11,15 +11,15 @@ arch:
 startup: application
 boot: auto
 ingress: true
-ingress_port: 3000
+ingress_port: 3010
 ingress_stream: true
-ingress_entry: /health
+ingress_entry: /
 panel_icon: mdi:robot
 ports:
-  3000/tcp: null
+  3010/tcp: null
 ports_description:
-  3000/tcp: ZeroClaw gateway API (optional host mapping)
-watchdog: http://[HOST]:[PORT:3000]/health
+  3010/tcp: ZeroClaw UI and gateway API (optional host mapping)
+watchdog: http://[HOST]:[PORT:3010]/health
 options:
   provider: openrouter
   api_key: null

@@ -3,6 +3,8 @@ set -euo pipefail
 
 OPTIONS_FILE="/data/options.json"
 STATE_DIR="/data/zeroclaw"
+FRONTEND_PORT="3010"
+BACKEND_PORT="3011"
 
 read_opt() {
     local key="$1"
@@ -79,7 +81,7 @@ export API_KEY
 export PROVIDER
 export ZEROCLAW_ALLOW_PUBLIC_BIND="${ALLOW_PUBLIC_BIND}"
 export ZEROCLAW_GATEWAY_HOST="${GATEWAY_HOST}"
-export ZEROCLAW_GATEWAY_PORT="3000"
+export ZEROCLAW_GATEWAY_PORT="${BACKEND_PORT}"
 
 if [[ -n "${MODEL}" && "${MODEL}" != "null" ]]; then
     export ZEROCLAW_MODEL="${MODEL}"
@@ -88,8 +90,26 @@ fi
 echo "=========================================="
 echo "ZeroClaw Gateway"
 echo "Provider: ${PROVIDER}"
-echo "Bind: ${GATEWAY_HOST}:3000"
+echo "Bind (backend): ${GATEWAY_HOST}:${BACKEND_PORT}"
 echo "Require pairing: ${REQUIRE_PAIRING}"
+echo "Ingress UI: http://0.0.0.0:${FRONTEND_PORT}/"
 echo "=========================================="
 
-exec /usr/local/bin/zeroclaw gateway
+/usr/local/bin/zeroclaw gateway &
+gateway_pid=$!
+
+nginx -c /etc/zeroclaw/nginx.conf -g "daemon off;" &
+nginx_pid=$!
+
+cleanup() {
+    kill "${gateway_pid}" "${nginx_pid}" >/dev/null 2>&1 || true
+}
+
+trap cleanup EXIT INT TERM
+
+set +e
+wait -n "${gateway_pid}" "${nginx_pid}"
+exit_code=$?
+set -e
+cleanup
+exit "${exit_code}"

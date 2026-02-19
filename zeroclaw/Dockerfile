@@ -26,9 +26,12 @@ RUN apt-get update \
         ca-certificates \
         curl \
         jq \
+        nginx \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/local/bin/zeroclaw /usr/local/bin/zeroclaw
+COPY nginx/nginx.conf /etc/zeroclaw/nginx.conf
+COPY ui /opt/zeroclaw-ui
 COPY run.sh /run.sh
 RUN chmod a+x /run.sh
 

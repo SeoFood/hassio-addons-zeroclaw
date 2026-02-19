@@ -46,13 +46,13 @@ Hinweis: `api_key` ist Pflicht. Ohne Key beendet sich das Add-on absichtlich mit
    - `ZeroClaw Gateway`
    - `Provider: <dein_provider>`
    - Kein sofortiger Exit
-3. Ingress öffnen.
+3. Ingress öffnen (UI muss sichtbar sein).
 4. Watchdog prüfen (`/health`): Status darf nicht fehlschlagen.
 
 ## 5. Funktionaler Test
 
 1. Ingress öffnen.
-2. Eine einfache Anfrage schicken (z. B. `Hello`).
+2. In der UI eine einfache Anfrage schicken (z. B. `Hello`).
 3. Erwartung:
    - HTTP-Antwort vom Gateway
    - Keine Auth-/Provider-Fehler im Log
