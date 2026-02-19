@@ -1,6 +1,6 @@
 ---
 name: ZeroClaw
-version: 0.1.0-9
+version: 0.1.0-10
 slug: zeroclaw
 description: Run ZeroClaw daemon as a Home Assistant add-on
 url: https://github.com/SeoFood/hassio-addons-zeroclaw/tree/main/zeroclaw

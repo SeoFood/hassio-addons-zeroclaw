@@ -24,6 +24,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         bash \
         ca-certificates \
+        gh \
         git \
         jq \
     && rm -rf /var/lib/apt/lists/*

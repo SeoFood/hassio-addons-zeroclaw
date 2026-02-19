@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-10
+
+- Added `gh` (GitHub CLI) to the runtime image for persistent in-container availability.
+
 ## 0.1.0-9
 
 - Switched the add-on to daemon-only mode and removed gateway/runtime mode options.
