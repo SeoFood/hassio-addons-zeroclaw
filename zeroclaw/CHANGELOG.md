@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-6
+
+- Switched to a single `channels_config_dir` option and removed legacy `channels_config_file` / `channels_config_toml` options.
+- Add-on now auto-creates `<channels_config_dir>/channels.toml` with a starter template on first start.
+- Updated docs and option labels for the directory-only workflow.
+
 ## 0.1.0-5
 
 - Fixed option-save issues by switching `channels_config_file` and `channels_config_toml` defaults from `null` to empty strings.

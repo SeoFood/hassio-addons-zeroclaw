@@ -21,11 +21,8 @@ configuration:
   gateway_host:
     name: Gateway host
     description: Bind address for the ZeroClaw gateway.
-  channels_config_file:
-    name: Channels config file
-    description: Optional TOML file path. Relative paths resolve under /share. If set, this takes priority over channels_config_toml.
-  channels_config_toml:
-    name: Channels config (TOML)
-    description: Optional raw TOML block appended to ~/.zeroclaw/config.toml (for example [channels_config.discord]).
+  channels_config_dir:
+    name: Channels config directory
+    description: Optional folder path. Relative paths resolve under /share; channels.toml is read from this folder (auto-created on first start).
 network:
   3010/tcp: ZeroClaw UI and add-on endpoint port

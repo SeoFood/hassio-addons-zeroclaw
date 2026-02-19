@@ -51,8 +51,7 @@ MODEL="$(read_opt '.model' '')"
 REQUIRE_PAIRING="$(read_opt '.require_pairing' 'false')"
 ALLOW_PUBLIC_BIND="$(read_opt '.allow_public_bind' 'true')"
 GATEWAY_HOST="$(read_opt '.gateway_host' '0.0.0.0')"
-CHANNELS_CONFIG_FILE="$(read_opt '.channels_config_file' '')"
-CHANNELS_CONFIG_TOML="$(read_opt '.channels_config_toml' '')"
+CHANNELS_CONFIG_DIR="$(read_opt '.channels_config_dir' '')"
 
 RUNTIME_MODE="${RUNTIME_MODE,,}"
 case "${RUNTIME_MODE}" in
@@ -112,44 +111,47 @@ else
     } >> "${CONFIG_FILE}"
 fi
 
-if [[ "${CHANNELS_CONFIG_FILE}" == "null" ]]; then
-    CHANNELS_CONFIG_FILE=""
-fi
-if [[ "${CHANNELS_CONFIG_TOML}" == "null" ]]; then
-    CHANNELS_CONFIG_TOML=""
+if [[ "${CHANNELS_CONFIG_DIR}" == "null" ]]; then
+    CHANNELS_CONFIG_DIR=""
 fi
 
 CHANNELS_CONFIG_BLOCK=""
 CHANNELS_CONFIG_SOURCE=""
-if [[ -n "${CHANNELS_CONFIG_FILE}" ]]; then
-    if [[ "${CHANNELS_CONFIG_FILE}" != /* ]]; then
-        CHANNELS_CONFIG_FILE="/share/${CHANNELS_CONFIG_FILE}"
+if [[ -n "${CHANNELS_CONFIG_DIR}" ]]; then
+    if [[ "${CHANNELS_CONFIG_DIR}" != /* ]]; then
+        CHANNELS_CONFIG_DIR="/share/${CHANNELS_CONFIG_DIR}"
     fi
+    CHANNELS_CONFIG_DIR="${CHANNELS_CONFIG_DIR%/}"
+    mkdir -p "${CHANNELS_CONFIG_DIR}"
+    CHANNELS_CONFIG_FILE="${CHANNELS_CONFIG_DIR}/channels.toml"
     if [[ ! -f "${CHANNELS_CONFIG_FILE}" ]]; then
-        echo "ERROR: channels_config_file nicht gefunden: ${CHANNELS_CONFIG_FILE}" >&2
-        exit 1
+        cat > "${CHANNELS_CONFIG_FILE}" <<'EOF'
+# ZeroClaw channels config
+# Fill this file with your channel definitions.
+#
+# Example:
+# [channels_config.discord]
+# bot_token = "discord-bot-token"
+# guild_id = "123456789012345678"
+# allowed_users = ["123456789012345678"]
+# listen_to_bots = false
+# mention_only = false
+EOF
+        echo "INFO: Beispiel-Datei erstellt: ${CHANNELS_CONFIG_FILE}" >&2
     fi
     CHANNELS_CONFIG_BLOCK="$(cat "${CHANNELS_CONFIG_FILE}")"
     if [[ -n "${CHANNELS_CONFIG_BLOCK}" ]]; then
-        if [[ -n "${CHANNELS_CONFIG_TOML}" ]]; then
-            echo "WARN: channels_config_file ist gesetzt, channels_config_toml wird ignoriert." >&2
-        fi
-        CHANNELS_CONFIG_SOURCE="file:${CHANNELS_CONFIG_FILE}"
-    elif [[ -n "${CHANNELS_CONFIG_TOML}" ]]; then
-        echo "WARN: channels_config_file ist leer, fallback auf channels_config_toml." >&2
-        CHANNELS_CONFIG_BLOCK="${CHANNELS_CONFIG_TOML}"
-        CHANNELS_CONFIG_SOURCE="inline-fallback"
+        CHANNELS_CONFIG_SOURCE="dir:${CHANNELS_CONFIG_DIR}"
+    else
+        echo "WARN: ${CHANNELS_CONFIG_FILE} ist leer. Keine Channel-Konfiguration wird geladen." >&2
     fi
-elif [[ -n "${CHANNELS_CONFIG_TOML}" ]]; then
-    CHANNELS_CONFIG_BLOCK="${CHANNELS_CONFIG_TOML}"
-    CHANNELS_CONFIG_SOURCE="inline"
 fi
 
 if [[ -n "${CHANNELS_CONFIG_BLOCK}" ]]; then
     append_managed_block "${CONFIG_FILE}" "${CHANNELS_CONFIG_BLOCK}"
     if ! /usr/local/bin/zeroclaw channel list >/dev/null 2>&1; then
         echo "ERROR: Channel-Konfiguration konnte nicht validiert werden." >&2
-        echo "Pruefe channels_config_file/channels_config_toml (Syntax oder Feldnamen)." >&2
+        echo "Pruefe ${CHANNELS_CONFIG_FILE} (Syntax oder Feldnamen)." >&2
         exit 1
     fi
 fi

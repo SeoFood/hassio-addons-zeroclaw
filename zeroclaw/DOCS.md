@@ -11,8 +11,7 @@ Run ZeroClaw as a Home Assistant add-on and access it via Ingress.
 - `require_pairing`: requires `/pair` before webhook requests (default `false` for easier HA usage)
 - `allow_public_bind`: keep enabled when `gateway_host` is `0.0.0.0`
 - `gateway_host`: bind address (default `0.0.0.0`)
-- `channels_config_file`: TOML file path for channels config (relative paths resolve under `/share`); leave empty to disable.
-- `channels_config_toml`: raw TOML block appended to `~/.zeroclaw/config.toml`; leave empty to disable.
+- `channels_config_dir`: folder for channel config (relative paths resolve under `/share`); if set, the add-on reads `<dir>/channels.toml` and creates it on first start if missing.
 
 ## Runtime modes
 
@@ -21,14 +20,14 @@ Run ZeroClaw as a Home Assistant add-on and access it via Ingress.
 
 ## Discord setup example
 
-Recommended: Set `runtime_mode` to `daemon` and use `channels_config_file`.
+Recommended: Set `runtime_mode` to `daemon` and use `channels_config_dir`.
 
 ```yaml
 runtime_mode: daemon
-channels_config_file: zeroclaw/channels.toml
+channels_config_dir: zeroclaw
 ```
 
-Create `/share/zeroclaw/channels.toml` with:
+Then edit `/share/zeroclaw/channels.toml` (created automatically on first start) with:
 
 ```toml
 [channels_config.discord]
@@ -38,10 +37,6 @@ allowed_users = ["123456789012345678"]
 listen_to_bots = false
 mention_only = false
 ```
-
-Fallback:
-- If `channels_config_file` is empty, `channels_config_toml` is used.
-- If both are set, `channels_config_file` takes priority.
 
 Security note:
 - Avoid `allowed_users = ["*"]` in production. Use explicit Discord user IDs.
