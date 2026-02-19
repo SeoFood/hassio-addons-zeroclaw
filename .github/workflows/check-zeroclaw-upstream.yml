@@ -1,0 +1,107 @@
+name: Check ZeroClaw Upstream
+
+on:
+  schedule:
+    - cron: "15 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: check-zeroclaw-upstream
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Check upstream release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compare pinned vs latest release
+        id: compare
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          current="$(awk -F= '/^ARG ZEROCLAW_VERSION=/{print $2; exit}' zeroclaw/Dockerfile | tr -d '[:space:]')"
+          if [[ -z "${current}" ]]; then
+            echo "Could not read ARG ZEROCLAW_VERSION from zeroclaw/Dockerfile" >&2
+            exit 1
+          fi
+
+          latest="$(curl -fsSL https://api.github.com/repos/zeroclaw-labs/zeroclaw/releases/latest | jq -r '.tag_name')"
+          if [[ -z "${latest}" || "${latest}" == "null" ]]; then
+            latest="$(curl -fsSL 'https://api.github.com/repos/zeroclaw-labs/zeroclaw/tags?per_page=1' | jq -r '.[0].name')"
+          fi
+
+          if [[ -z "${latest}" || "${latest}" == "null" ]]; then
+            echo "Could not resolve latest zeroclaw tag/release" >&2
+            exit 1
+          fi
+
+          update_available="false"
+          if [[ "${current}" != "${latest}" ]]; then
+            update_available="true"
+          fi
+
+          echo "current=${current}" >> "${GITHUB_OUTPUT}"
+          echo "latest=${latest}" >> "${GITHUB_OUTPUT}"
+          echo "update_available=${update_available}" >> "${GITHUB_OUTPUT}"
+
+          {
+            echo "## ZeroClaw Upstream Check"
+            echo ""
+            echo "- Pinned in add-on: \`${current}\`"
+            echo "- Latest upstream: \`${latest}\`"
+            echo "- Update available: \`${update_available}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Create issue when update is available
+        if: steps.compare.outputs.update_available == 'true'
+        uses: actions/github-script@v7
+        env:
+          CURRENT: ${{ steps.compare.outputs.current }}
+          LATEST: ${{ steps.compare.outputs.latest }}
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const current = process.env.CURRENT;
+            const latest = process.env.LATEST;
+            const title = `ZeroClaw update available: ${current} -> ${latest}`;
+
+            const { data: openIssues } = await github.rest.issues.listForRepo({
+              owner,
+              repo,
+              state: "open",
+              per_page: 100,
+            });
+
+            const existing = openIssues.find((issue) => issue.title === title);
+            if (existing) {
+              core.info(`Issue already exists: #${existing.number}`);
+              return;
+            }
+
+            const body = [
+              "Ein neuer ZeroClaw-Release ist verfuegbar.",
+              "",
+              `- Aktuell gepinnt: \`${current}\``,
+              `- Neuester Upstream-Tag: \`${latest}\``,
+              "",
+              "Nächste Schritte:",
+              "1. `zeroclaw/Dockerfile`: `ARG ZEROCLAW_VERSION` auf den neuen Tag setzen.",
+              "2. `zeroclaw/config.yaml`: Add-on-Version erhoehen.",
+              "3. Build + Test in Home Assistant.",
+            ].join("\n");
+
+            await github.rest.issues.create({
+              owner,
+              repo,
+              title,
+              body,
+            });
