@@ -1,7 +1,7 @@
 ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base-debian:bookworm
 
 FROM rust:1.93-slim-bookworm AS builder
-ARG ZEROCLAW_VERSION=v0.1.0
+ARG ZEROCLAW_VERSION=v0.1.6
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
